@@ -2,13 +2,11 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.translation import gettext_lazy as _
-from auth.base import BaseModel
-from auth.managers import CustomUserManager
+from users.base import BaseModel
+from users.managers import CustomUserManager
 from uuid import uuid4
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-
-User = get_user_model()
 
 
 class CustomUser(AbstractUser):
@@ -45,7 +43,7 @@ class CustomUser(AbstractUser):
 
 class VerificationCode(BaseModel):
     code = models.CharField(max_length=6, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     expires = models.DateTimeField()
 
     def __str__(self):
