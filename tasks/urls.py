@@ -13,7 +13,7 @@ router = DefaultRouter()
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("list/create/", TaskListCreateView.as_view(), name="task-list-create"),
+    path("list-create/", TaskListCreateView.as_view(), name="task-list"),
     path("<int:pk>/", TaskDetailView.as_view(), name="task-detail"),
     path(
         "<int:pk>/assign/<uuid:user_id>/", AssignTaskView.as_view(), name="assign-task"
