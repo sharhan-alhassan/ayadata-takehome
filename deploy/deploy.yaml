@@ -66,7 +66,6 @@ metadata:
     app: ayadata-app
   name: ayadata-app
   annotations:
-    # konghq.com/protocol: https
     konghq.com/tls: tamale.forward.tls.wildcard.tiaspaces.com
 spec:
   ingressClassName: kong
