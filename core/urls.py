@@ -18,6 +18,7 @@ Including another URLconf
 import os
 from django.contrib import admin
 from django.http import HttpResponse
+from django.shortcuts import render
 from django.urls import include, path
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -41,9 +42,11 @@ SHOW_SWAGGER = os.environ.get("SHOW_SWAGGER", "True").lower() in [
 DEBUG = os.environ.get("DEBUG")
 
 
-def home(request):
-    return HttpResponse("Hi, Ayadata here!")
+# def home(request):
+#     return HttpResponse("Hi, Ayadata here!")
 
+def home(request):
+    return render(request, 'home.html')
 
 schema_view = get_schema_view(
     openapi.Info(

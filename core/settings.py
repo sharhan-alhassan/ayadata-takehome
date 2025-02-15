@@ -17,29 +17,34 @@ from pathlib import Path
 from datetime import timedelta
 from huey import SqliteHuey
 
-env = environ.Env()
-environ.Env.read_env()
+# env = environ.Env()
+# environ.Env.read_env()
 
-env = environ.Env(
-    # Set default values for build time
-    DEBUG=(bool, False),
-    SECRET_KEY=(str, 'dummy-key-for-build'),
-    # Add other environment variables with defaults
-    REDIS_HOST=(str, 'localhost'),
-    REDIS_PORT=(int, 6379),
-    REDIS_USERNAME=(str, ''),
-    REDIS_PASSWORD=(str, ''),
-    DBNAME=(str, 'postgres'),
-    DBUSER=(str, 'postgres'),
-    DBHOST=(str, 'localhost'),
-    DBPASSWORD=(str, ''),
-    DBPORT=(int, 5432),
-    EMAIL_HOST_USER=(str, ''),
-    EMAIL_HOST_PASSWORD=(str, ''),
-    DEFAULT_FROM_EMAIL=(str, 'noreply@example.com'),
-    SERVER_EMAIL=(str, 'server@example.com'),
-    EMAIL_PORT=(int, 587),
-)
+ENV = os.getenv('ENV', 'production')
+
+if ENV == 'dev':
+    env = environ.Env()
+    environ.Env.read_env()
+else:
+    # Set default values for build time in production
+    env = environ.Env(
+        DEBUG=(bool, False),
+        SECRET_KEY=(str, 'dummy-key-for-build'),
+        REDIS_HOST=(str, 'localhost'),
+        REDIS_PORT=(int, 6379),
+        REDIS_USERNAME=(str, ''),
+        REDIS_PASSWORD=(str, ''),
+        DBNAME=(str, 'postgres'),
+        DBUSER=(str, 'postgres'),
+        DBHOST=(str, 'localhost'),
+        DBPASSWORD=(str, ''),
+        DBPORT=(int, 5432),
+        EMAIL_HOST_USER=(str, ''),
+        EMAIL_HOST_PASSWORD=(str, ''),
+        DEFAULT_FROM_EMAIL=(str, 'noreply@example.com'),
+        SERVER_EMAIL=(str, 'server@example.com'),
+        EMAIL_PORT=(int, 587),
+    )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
