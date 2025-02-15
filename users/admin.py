@@ -23,7 +23,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {"fields": ("email", "password")}),
         (
             "Personal Info",
-            {"fields": ("first_name", "last_name", "username", "avatar")},
+            {"fields": ("first_name", "last_name", "username",)},
         ),
         (
             "Permissions",
@@ -83,5 +83,10 @@ class CustomUserAdmin(UserAdmin):
     readonly_fields = ("date_joined", "last_login")
 
 
+class VerificationCodeAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "code", "expires")
+    list_filter = ("code", "created_at")
+    search_fields = ("user",)
+
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(VerificationCode)
+admin.site.register(VerificationCode, VerificationCodeAdmin)

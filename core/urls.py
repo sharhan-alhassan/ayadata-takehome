@@ -31,11 +31,6 @@ from django.conf import settings
 
 
 SHOW_SWAGGER = os.environ.get("SHOW_SWAGGER", "True").lower() in [
-    # "false",
-    # "1",
-    # "t",
-    # "yes",
-    # "y",
     "true",
     "1",
     "t",
@@ -65,16 +60,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("", home, name="home"),
-    path("admin/", admin.site.urls),
-    path("api/v1/tasks/", include("tasks.urls")),
-    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    # path("api/users/", include("users.urls")),
-]
-
-if SHOW_SWAGGER:
-    urlpatterns += [
-        path(
+    path(
             "swagger<format>/",
             schema_view.without_ui(cache_timeout=0),
             name="schema-json",
@@ -87,7 +73,14 @@ if SHOW_SWAGGER:
         path(
             "redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"
         ),
-    ]
+    path("admin/", admin.site.urls),
+    path("api/tasks/", include("tasks.urls")),
+    # path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    # path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/users/", include("users.urls")),
+    path('django-rq/', include('django_rq.urls'))
+]
+
 
 urlpatterns += static(
     settings.MEDIA_URL, document_root=settings.MEDIA_ROOT, show_indexes=settings.DEBUG

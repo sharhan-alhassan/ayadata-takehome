@@ -10,16 +10,40 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from urllib.parse import urlparse
 import environ
-import os
+import os, certifi
 from pathlib import Path
 from datetime import timedelta
+from huey import SqliteHuey
 
 env = environ.Env()
 environ.Env.read_env()
 
+env = environ.Env(
+    # Set default values for build time
+    DEBUG=(bool, False),
+    SECRET_KEY=(str, 'dummy-key-for-build'),
+    # Add other environment variables with defaults
+    REDIS_HOST=(str, 'localhost'),
+    REDIS_PORT=(int, 6379),
+    REDIS_USERNAME=(str, ''),
+    REDIS_PASSWORD=(str, ''),
+    DBNAME=(str, 'postgres'),
+    DBUSER=(str, 'postgres'),
+    DBHOST=(str, 'localhost'),
+    DBPASSWORD=(str, ''),
+    DBPORT=(int, 5432),
+    EMAIL_HOST_USER=(str, ''),
+    EMAIL_HOST_PASSWORD=(str, ''),
+    DEFAULT_FROM_EMAIL=(str, 'noreply@example.com'),
+    SERVER_EMAIL=(str, 'server@example.com'),
+    EMAIL_PORT=(int, 587),
+)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
@@ -30,9 +54,26 @@ SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=True)
+SHOW_SWAGGER = env.bool("SHOW_SWAGGER", default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "*",
+    "http://ayadata.tamale.forward.tiaspaces.com",
+    "https://ayadata.tamale.forward.tiaspaces.com",
+]
 
+CORS_ORIGINS = [
+    "localhost", 
+    "127.0.0.1", 
+    "*", 
+    "http://ayadata.tamale.forward.tiaspaces.com",
+    "https://ayadata.tamale.forward.tiaspaces.com",
+]
+
+CORS_ORIGIN_ALLOW_ALL = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
@@ -53,6 +94,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
+    "django_rq",
 ]
 
 MIDDLEWARE = [
@@ -80,6 +122,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
+            "libraries": {},
         },
     },
 ]
@@ -93,9 +136,21 @@ WSGI_APPLICATION = "core.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
     }
 }
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": env("DBNAME"),
+#         "USER": env("DBUSER"),
+#         "PASSWORD": env("DBPASSWORD"),
+#         "HOST": env("DBHOST"),
+#         "PORT": env("DBPORT"),
+#         "OPTIONS": {"sslmode": "require"},
+#     }
+# }
 
 
 # Password validation
@@ -183,3 +238,91 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = "users.CustomUser"
 SITE_ID = 1
+
+REDIS_URL = "redis://{username}:{password}@{host}:{port}".format(
+    username=env("REDIS_USERNAME"),
+    password=env("REDIS_PASSWORD"),
+    host=env("REDIS_HOST"),
+    port=env("REDIS_PORT"),
+)
+
+# print(f"####################### REDIS ####################: {REDIS_URL}")
+
+REDIS_CACHE_NAME = "aya_redis_cache"
+REDIS_HUEY_TASK_NAME = "aya_redis_huey"
+CACHE_VIEWS_PREFIX = f"{REDIS_CACHE_NAME}:view"
+
+# Django-Redis
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "KEY_PREFIX": REDIS_CACHE_NAME,
+    }
+}
+
+# HUEY_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'huey.db')
+
+# DJANGO_HUEY = {
+#     "default": "ayahuey", 
+#     "queues": {
+#         "ayahuey": { 
+#             "huey_class": "huey.RedisHuey",
+#             "url": REDIS_URL,
+#             "name": REDIS_HUEY_TASK_NAME,
+#             "results": True,
+#             "store_none": False,
+#             "immediate": False,
+#             "utc": True,
+#             "blocking": False,
+#             "consumer": {
+#                 "workers": 8,
+#                 "worker_type": "process",
+#                 "initial_delay": 0.1,
+#                 "backoff": 1.0,
+#                 "max_delay": 2.0,
+#             },
+#             "connection": {
+#                 # 'connection_pool': pool,
+#             },
+#         }
+#     },
+# }
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_USE_TLS = True
+EMAIL_PORT = env("EMAIL_PORT")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER
+
+# os.environ["‘SSL_CERT_FILE’"] = certifi.where()
+
+
+redis_url = urlparse(REDIS_URL)
+
+# Extract components from the URL
+redis_username = redis_url.username
+redis_password = redis_url.password
+redis_host = redis_url.hostname
+redis_port = redis_url.port
+redis_db = 0  # Default DB, or extract from the URL path if needed
+
+# Configure RQ_QUEUES
+RQ_QUEUES = {
+    'default': {
+        'USE_REDIS_CACHE': 'default',
+    }
+    # 'default': {
+    #     'HOST': redis_host,
+    #     'PORT': redis_port,
+    #     'DB': redis_db,
+    #     'USERNAME': redis_username,
+    #     'PASSWORD': redis_password,
+    #     'DEFAULT_TIMEOUT': 360,
+    # },
+}

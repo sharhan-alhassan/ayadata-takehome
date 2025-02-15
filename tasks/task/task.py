@@ -1,16 +1,15 @@
 from django.http import Http404
 from rest_framework import generics, permissions
 from core.utilities.custom_pagination import CustomPagination
-from .models import Task
+from ..models import Task
 from tasks.serializers.serializer import CreateUpdateTaskSerializer, TaskSerializer
 from rest_framework import generics, permissions
-from core.utilities.custom_permissions import IsOwnerOrAdminOrReadOnly
+from core.utilities.custom_permissions import IsTaskOwnerOrAdminOrReadOnly
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import NotFound
-
 
 User = get_user_model()
 
@@ -91,7 +90,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Task.objects.all()
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsTaskOwnerOrAdminOrReadOnly]
 
     def get_serializer_class(self):
         if self.request.method.lower() in ["put", "patch"]:
@@ -101,7 +100,7 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == "GET":
             return [permissions.IsAuthenticated()]
-        return [IsOwnerOrAdminOrReadOnly()]
+        return [IsTaskOwnerOrAdminOrReadOnly()]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -140,8 +139,9 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class AssignTaskView(generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdminOrReadOnly]
-
+    permission_classes = [permissions.IsAuthenticated, IsTaskOwnerOrAdminOrReadOnly]
+    queryset = Task.objects.all()
+    
     def get_serializer(self, *args, **kwargs):
         return None
 

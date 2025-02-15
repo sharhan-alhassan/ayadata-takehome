@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ayadata-app
+  namespace: tiaspaces
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: ayadata-app
+  template:
+    metadata:
+      labels:
+        app: ayadata-app
+    spec:
+      tolerations:
+      - effect: NoSchedule
+        key: kubernetes.azure.com/scalesetpriority
+        operator: Equal
+        value: spot
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.azure.com/scalesetpriority
+                operator: In
+                values:
+                - spot
+      containers:
+      - name: ayadata-app
+        image: sharhanalhassan/ayadata-app:0.0.4
+        envFrom:
+            - configMapRef:
+                name: general-config
+        command: ["/bin/sh", "-c"]
+        args:
+            - python manage.py collectstatic --noinput &&
+              python manage.py migrate && 
+              gunicorn --config gunicorn_config.py core.wsgi:application
+        ports:
+        - containerPort: 8000
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ayadata-app
+  namespace: tiaspaces 
+spec:
+  ports:
+    - port: 80
+      targetPort: 8000
+  selector:
+    app: ayadata-app
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: tiaspaces
+  labels:
+    app: ayadata-app
+  name: ayadata-app
+  annotations:
+    # konghq.com/protocol: https
+    konghq.com/tls: tamale.forward.tls.wildcard.tiaspaces.com
+spec:
+  ingressClassName: kong
+  rules:
+  - host: ayadata.tamale.forward.tiaspaces.com            
+    http:
+      paths:
+      - backend:
+          service:
+            name: ayadata-app
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - ayadata.tamale.forward.tiaspaces.com                      
+    secretName: tamale.forward.tls.wildcard.tiaspaces.com        
+---

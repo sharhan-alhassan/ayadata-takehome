@@ -11,6 +11,7 @@ from django.utils import timezone
 
 class CustomUser(AbstractUser):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid4)
+    username = models.CharField(max_length=120, null=True, blank=True)
     email = models.EmailField(_("Email Address"), unique=True)
     is_admin = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
